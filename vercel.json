@@ -1,17 +1,14 @@
 {
   "version": 2,
   "functions": {
-    "app_vercel.py": {
+    "api/index.py": {
       "maxDuration": 30
     }
   },
   "routes": [
     {
       "src": "/(.*)",
-      "dest": "app_vercel.py"
+      "dest": "api/index.py"
     }
-  ],
-  "env": {
-    "PYTHONPATH": "."
-  }
+  ]
 }
