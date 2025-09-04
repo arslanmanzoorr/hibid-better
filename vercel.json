@@ -1,11 +1,10 @@
 {
   "version": 2,
-  "builds": [
-    {
-      "src": "app_vercel.py",
-      "use": "@vercel/python"
+  "functions": {
+    "app_vercel.py": {
+      "maxDuration": 30
     }
-  ],
+  },
   "routes": [
     {
       "src": "/(.*)",
@@ -14,10 +13,5 @@
   ],
   "env": {
     "PYTHONPATH": "."
-  },
-  "functions": {
-    "app_vercel.py": {
-      "maxDuration": 30
-    }
   }
 }
