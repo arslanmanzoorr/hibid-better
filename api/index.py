@@ -1,10 +1,7 @@
-from flask import Flask, request, jsonify
+import json
 import requests
 from bs4 import BeautifulSoup
 import re
-import time
-
-app = Flask(__name__)
 
 def scrape_auction_data(url):
     """Scrape auction data using requests and BeautifulSoup (Vercel compatible)"""
@@ -154,60 +151,102 @@ def scrape_auction_data(url):
     
     return result_data
 
-@app.route('/extract-all', methods=['POST'])
-def extract_all_data():
-    """Combined endpoint to extract all data from auction page"""
+def handler(request):
+    """Vercel handler function"""
+    # Set CORS headers
+    headers = {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type'
+    }
+    
+    # Handle preflight requests
+    if request.method == 'OPTIONS':
+        return {
+            'statusCode': 200,
+            'headers': headers,
+            'body': ''
+        }
+    
     try:
-        data = request.json
-        if not data or 'url' not in data:
-            return jsonify({'error': 'URL is required in request body'}), 400
+        # Parse the request
+        path = request.path
+        method = request.method
         
-        url = data['url']
-        result = scrape_auction_data(url)
-        
-        if 'error' in result:
-            return jsonify(result), 500
-        
-        return jsonify(result)
+        # Route handling
+        if path == '/' and method == 'GET':
+            # API info endpoint
+            response_data = {
+                'name': 'Improved HiBid Scraper API',
+                'version': '2.0',
+                'description': 'Advanced auction data extraction API',
+                'endpoints': {
+                    '/extract-all': {
+                        'method': 'POST',
+                        'description': 'Extract all auction data from a single URL',
+                        'body': {'url': 'auction_page_url'}
+                    },
+                    '/health': {
+                        'method': 'GET',
+                        'description': 'Health check endpoint'
+                    }
+                }
+            }
+            
+        elif path == '/health' and method == 'GET':
+            # Health check endpoint
+            response_data = {
+                'status': 'ok',
+                'message': 'Improved HiBid Scraper API is running',
+                'version': '2.0'
+            }
+            
+        elif path == '/extract-all' and method == 'POST':
+            # Main scraping endpoint
+            try:
+                body = request.body
+                if isinstance(body, str):
+                    data = json.loads(body)
+                else:
+                    data = body
+                
+                if not data or 'url' not in data:
+                    response_data = {'error': 'URL is required in request body'}
+                    status_code = 400
+                else:
+                    url = data['url']
+                    result = scrape_auction_data(url)
+                    
+                    if 'error' in result:
+                        response_data = result
+                        status_code = 500
+                    else:
+                        response_data = result
+                        status_code = 200
+                        
+            except Exception as e:
+                response_data = {
+                    'success': False,
+                    'error': str(e)
+                }
+                status_code = 500
+        else:
+            # 404 for unknown routes
+            response_data = {'error': 'Not found'}
+            status_code = 404
+            
+        return {
+            'statusCode': status_code if 'status_code' in locals() else 200,
+            'headers': headers,
+            'body': json.dumps(response_data)
+        }
         
     except Exception as e:
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
-
-@app.route('/health', methods=['GET'])
-def health_check():
-    """Health check endpoint"""
-    return jsonify({
-        'status': 'ok',
-        'message': 'Improved HiBid Scraper API is running',
-        'version': '2.0'
-    })
-
-@app.route('/', methods=['GET'])
-def api_info():
-    """API information endpoint"""
-    return jsonify({
-        'name': 'Improved HiBid Scraper API',
-        'version': '2.0',
-        'description': 'Advanced auction data extraction API',
-        'endpoints': {
-            '/extract-all': {
-                'method': 'POST',
-                'description': 'Extract all auction data from a single URL',
-                'body': {'url': 'auction_page_url'}
-            },
-            '/health': {
-                'method': 'GET',
-                'description': 'Health check endpoint'
-            }
+        return {
+            'statusCode': 500,
+            'headers': headers,
+            'body': json.dumps({
+                'error': f'Internal server error: {str(e)}'
+            })
         }
-    })
-
-# Vercel handler - this is the key part
-def handler(request):
-    return app(request.environ, lambda status, headers: None)
-
-if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=8000)
