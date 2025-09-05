@@ -205,8 +205,7 @@ def api_info():
         }
     })
 
-# For Vercel deployment
-handler = app
+# For Vercel deployment - export the Flask app directly
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=8000)
