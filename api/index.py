@@ -205,8 +205,9 @@ def api_info():
         }
     })
 
-# For Vercel deployment
-handler = app
+# Vercel handler - this is the key part
+def handler(request):
+    return app(request.environ, lambda status, headers: None)
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=8000)
